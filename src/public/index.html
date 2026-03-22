@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iborg – Dating &amp; Matchmaking</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f0f4f8; color: #222; }
+    a { color: #5b6ee1; text-decoration: none; }
+
+    /* ── Layout ── */
+    #app { max-width: 960px; margin: 0 auto; padding: 1rem; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0 0.5rem; border-bottom: 2px solid #5b6ee1; margin-bottom: 1.5rem; }
+    header h1 { color: #5b6ee1; font-size: 1.8rem; letter-spacing: 2px; }
+    #nav-auth { display: flex; gap: 0.5rem; }
+
+    /* ── Buttons ── */
+    button, .btn {
+      cursor: pointer; border: none; border-radius: 6px;
+      padding: 0.5rem 1.1rem; font-size: 0.9rem; font-weight: 600; transition: opacity .2s;
+    }
+    button:hover { opacity: 0.85; }
+    .btn-primary { background: #5b6ee1; color: #fff; }
+    .btn-danger  { background: #e15b5b; color: #fff; }
+    .btn-sm      { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+    /* ── Forms ── */
+    .form-group { margin-bottom: 0.8rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; }
+    input, select, textarea {
+      width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #ccc;
+      border-radius: 5px; font-size: 0.9rem;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    .error-msg { color: #c0392b; font-size: 0.85rem; margin-top: 0.3rem; }
+
+    /* ── Panels ── */
+    .panel { background: #fff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 1.5rem; }
+    .panel h2 { margin-bottom: 1rem; color: #5b6ee1; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .tab-btn { background: #e8eaf6; color: #5b6ee1; border-radius: 6px; padding: 0.4rem 1rem; font-weight: 600; cursor: pointer; border: none; }
+    .tab-btn.active { background: #5b6ee1; color: #fff; }
+
+    /* ── Profile cards ── */
+    #profiles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .profile-card {
+      background: #fff; border-radius: 10px; padding: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,.07);
+      text-align: center; cursor: pointer; transition: transform .15s;
+    }
+    .profile-card:hover { transform: translateY(-3px); }
+    .profile-card img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; margin-bottom: 0.5rem; background: #eee; }
+    .profile-card .name { font-weight: 700; }
+    .profile-card .meta { font-size: 0.8rem; color: #666; }
+    .avatar-placeholder { width: 72px; height: 72px; border-radius: 50%; background: #c5cae9; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 0.5rem; }
+
+    /* ── Pagination ── */
+    #pagination { display: flex; gap: 0.5rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+
+    /* ── Chat ── */
+    #chat-panel { position: fixed; right: 0; bottom: 0; width: 340px; height: 480px;
+      background: #fff; border-radius: 12px 12px 0 0; box-shadow: 0 -3px 16px rgba(0,0,0,.15);
+      display: flex; flex-direction: column; z-index: 100; }
+    #chat-header { background: #5b6ee1; color: #fff; padding: 0.6rem 1rem;
+      border-radius: 12px 12px 0 0; display: flex; align-items: center; justify-content: space-between; }
+    #chat-header span { font-weight: 700; }
+    #chat-messages { flex: 1; overflow-y: auto; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .msg { max-width: 75%; padding: 0.45rem 0.7rem; border-radius: 14px; font-size: 0.88rem; word-break: break-word; }
+    .msg-out { align-self: flex-end; background: #5b6ee1; color: #fff; }
+    .msg-in  { align-self: flex-start; background: #e8eaf6; color: #222; }
+    #chat-input-row { display: flex; padding: 0.6rem; gap: 0.4rem; border-top: 1px solid #eee; }
+    #chat-input { flex: 1; border-radius: 20px; padding: 0.4rem 0.8rem; }
+    #chat-send { border-radius: 20px; }
+
+    /* ── Edit profile ── */
+    #edit-profile-section { display: none; }
+
+    /* ── Hidden ── */
+    .hidden { display: none !important; }
+
+    /* ── Nav bar ── */
+    #main-nav { display: none; gap: 0.8rem; align-items: center; }
+    #main-nav span { font-size: 0.9rem; color: #555; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>iborg</h1>
+    <div id="nav-auth">
+      <button class="btn-primary" id="btn-show-auth">Login / Register</button>
+    </div>
+    <div id="main-nav">
+      <span id="nav-username"></span>
+      <button class="btn-primary btn-sm" id="btn-search-nav">Search</button>
+      <button class="btn-primary btn-sm" id="btn-edit-nav">Edit Profile</button>
+      <button class="btn-danger btn-sm" id="btn-logout">Logout</button>
+    </div>
+  </header>
+
+  <!-- ── Auth panel ── -->
+  <div class="panel" id="auth-panel">
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-login">Login</button>
+      <button class="tab-btn" id="tab-register">Register</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="login-form">
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" /></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-password" /></div>
+      <div class="error-msg" id="login-error"></div>
+      <button class="btn-primary" id="btn-login">Login</button>
+    </div>
+
+    <!-- Register form -->
+    <div id="register-form" class="hidden">
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" /></div>
+      <div class="form-group"><label>Password (min 8 chars)</label><input type="password" id="reg-password" /></div>
+      <div class="error-msg" id="reg-error"></div>
+      <button class="btn-primary" id="btn-register">Create Account</button>
+    </div>
+  </div>
+
+  <!-- ── Search panel ── -->
+  <div class="panel hidden" id="search-panel">
+    <h2>Find People</h2>
+    <div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <input style="flex:1;min-width:130px;" type="text" id="filter-username" placeholder="Username…" />
+      <input style="flex:1;min-width:130px;" type="text" id="filter-location" placeholder="Location…" />
+      <select style="flex:1;min-width:130px;" id="filter-gender">
+        <option value="">Any gender</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="non-binary">Non-binary</option>
+        <option value="other">Other</option>
+      </select>
+      <button class="btn-primary" id="btn-search">Search</button>
+    </div>
+    <div id="profiles-grid"></div>
+    <div id="pagination"></div>
+  </div>
+
+  <!-- ── Edit profile panel ── -->
+  <div class="panel hidden" id="edit-profile-section">
+    <h2>Edit My Profile</h2>
+    <div class="form-group"><label>Username</label><input type="text" id="edit-username" /></div>
+    <div class="form-group"><label>Age</label><input type="number" id="edit-age" min="0" /></div>
+    <div class="form-group">
+      <label>Gender</label>
+      <select id="edit-gender">
+        <option value="">Prefer not to say</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="non-binary">Non-binary</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Location</label><input type="text" id="edit-location" /></div>
+    <div class="form-group"><label>Bio</label><textarea id="edit-bio"></textarea></div>
+    <div class="form-group"><label>Photo URL</label><input type="url" id="edit-photo" /></div>
+    <div class="error-msg" id="edit-error"></div>
+    <button class="btn-primary" id="btn-save-profile">Save Changes</button>
+  </div>
+</div>
+
+<!-- ── Chat panel (fixed, hidden by default) ── -->
+<div id="chat-panel" class="hidden">
+  <div id="chat-header">
+    <span id="chat-partner-name">Chat</span>
+    <button class="btn-sm" id="btn-close-chat" style="background:rgba(255,255,255,.2);color:#fff;">✕</button>
+  </div>
+  <div id="chat-messages"></div>
+  <div id="chat-input-row">
+    <input id="chat-input" type="text" placeholder="Type a message…" maxlength="2000" />
+    <button class="btn-primary btn-sm" id="chat-send">Send</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let token = localStorage.getItem('iborg_token') || null;
+  let currentUser = JSON.parse(localStorage.getItem('iborg_user') || 'null');
+  let chatPartnerId = null;
+  let chatPartnerName = '';
+  let chatPollInterval = null;
+  let searchPage = 1;
+  let lastSearchParams = {};
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  const authPanel = document.getElementById('auth-panel');
+  const searchPanel = document.getElementById('search-panel');
+  const editSection = document.getElementById('edit-profile-section');
+  const mainNav = document.getElementById('main-nav');
+  const btnShowAuth = document.getElementById('btn-show-auth');
+  const navUsername = document.getElementById('nav-username');
+
+  // ── API helper ─────────────────────────────────────────────────────────────
+  async function api(method, path, body) {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+    };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch('/api' + path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  }
+
+  // ── Auth state ─────────────────────────────────────────────────────────────
+  function setAuth(t, u) {
+    token = t;
+    currentUser = u;
+    localStorage.setItem('iborg_token', t);
+    localStorage.setItem('iborg_user', JSON.stringify(u));
+    showLoggedIn();
+  }
+
+  function showLoggedIn() {
+    authPanel.classList.add('hidden');
+    btnShowAuth.classList.add('hidden');
+    mainNav.style.display = 'flex';
+    navUsername.textContent = currentUser.username || currentUser.email;
+    searchPanel.classList.remove('hidden');
+    editSection.classList.add('hidden');
+  }
+
+  function logout() {
+    token = null;
+    currentUser = null;
+    localStorage.removeItem('iborg_token');
+    localStorage.removeItem('iborg_user');
+    stopChatPoll();
+    document.getElementById('chat-panel').classList.add('hidden');
+    authPanel.classList.remove('hidden');
+    btnShowAuth.classList.remove('hidden');
+    mainNav.style.display = 'none';
+    searchPanel.classList.add('hidden');
+    editSection.classList.add('hidden');
+    document.getElementById('profiles-grid').innerHTML = '';
+    document.getElementById('pagination').innerHTML = '';
+  }
+
+  if (token && currentUser) showLoggedIn();
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  document.getElementById('tab-login').addEventListener('click', () => {
+    document.getElementById('login-form').classList.remove('hidden');
+    document.getElementById('register-form').classList.add('hidden');
+    document.getElementById('tab-login').classList.add('active');
+    document.getElementById('tab-register').classList.remove('active');
+  });
+  document.getElementById('tab-register').addEventListener('click', () => {
+    document.getElementById('register-form').classList.remove('hidden');
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('tab-register').classList.add('active');
+    document.getElementById('tab-login').classList.remove('active');
+  });
+
+  // ── Login ──────────────────────────────────────────────────────────────────
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    document.getElementById('login-error').textContent = '';
+    try {
+      const data = await api('POST', '/auth/login', { email, password });
+      setAuth(data.token, data.user);
+    } catch (e) {
+      document.getElementById('login-error').textContent = e.message;
+    }
+  });
+
+  // ── Register ───────────────────────────────────────────────────────────────
+  document.getElementById('btn-register').addEventListener('click', async () => {
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    document.getElementById('reg-error').textContent = '';
+    try {
+      const data = await api('POST', '/auth/register', { email, password });
+      setAuth(data.token, data.user);
+    } catch (e) {
+      document.getElementById('reg-error').textContent = e.message;
+    }
+  });
+
+  // ── Logout ─────────────────────────────────────────────────────────────────
+  document.getElementById('btn-logout').addEventListener('click', logout);
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+  document.getElementById('btn-search-nav').addEventListener('click', () => {
+    searchPanel.classList.remove('hidden');
+    editSection.classList.add('hidden');
+  });
+  document.getElementById('btn-edit-nav').addEventListener('click', async () => {
+    editSection.classList.remove('hidden');
+    searchPanel.classList.add('hidden');
+    // Pre-fill form with the authenticated user's current profile
+    try {
+      const data = await api('GET', '/profiles/me');
+      const p = data.profile;
+      document.getElementById('edit-username').value = p.username || '';
+      document.getElementById('edit-age').value = p.age != null ? p.age : '';
+      document.getElementById('edit-gender').value = p.gender || '';
+      document.getElementById('edit-location').value = p.location || '';
+      document.getElementById('edit-bio').value = p.bio || '';
+      document.getElementById('edit-photo').value = p.photo_url || '';
+    } catch (_) {}
+  });
+
+  // ── Search ─────────────────────────────────────────────────────────────────
+  async function doSearch(page) {
+    const username = document.getElementById('filter-username').value.trim();
+    const location = document.getElementById('filter-location').value.trim();
+    const gender = document.getElementById('filter-gender').value;
+    const params = new URLSearchParams({ page, limit: 20 });
+    if (username) params.set('username', username);
+    if (location) params.set('location', location);
+    if (gender) params.set('gender', gender);
+    lastSearchParams = { username, location, gender };
+    searchPage = page;
+
+    try {
+      const data = await api('GET', '/profiles/search?' + params.toString());
+      renderProfiles(data.profiles);
+      renderPagination(data.total, data.page, data.limit);
+    } catch (e) {
+      document.getElementById('profiles-grid').innerHTML = `<p class="error-msg">${e.message}</p>`;
+    }
+  }
+
+  document.getElementById('btn-search').addEventListener('click', () => doSearch(1));
+
+  function renderProfiles(profiles) {
+    const grid = document.getElementById('profiles-grid');
+    if (!profiles.length) {
+      grid.innerHTML = '<p style="color:#888;">No profiles found.</p>';
+      return;
+    }
+    grid.innerHTML = profiles.map(p => `
+      <div class="profile-card" data-userid="${escHtml(p.user_id)}" data-username="${escHtml(p.username)}">
+        ${p.photo_url
+          ? `<img src="${escHtml(p.photo_url)}" alt="avatar" onerror="this.style.display='none'" />`
+          : `<div class="avatar-placeholder">👤</div>`}
+        <div class="name">${escHtml(p.username)}</div>
+        <div class="meta">${p.age ? p.age + ' yrs' : ''}${p.age && p.gender ? ' · ' : ''}${p.gender ? escHtml(p.gender) : ''}</div>
+        ${p.location ? `<div class="meta">📍 ${escHtml(p.location)}</div>` : ''}
+        <button class="btn-primary btn-sm msg-btn" style="margin-top:0.5rem;">Message</button>
+      </div>`).join('');
+
+    // Attach via event delegation to avoid inline onclick XSS
+    grid.querySelectorAll('.msg-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const card = e.target.closest('.profile-card');
+        openChat(card.dataset.userid, card.dataset.username);
+      });
+    });
+  }
+
+  function renderPagination(total, page, limit) {
+    const pages = Math.ceil(total / limit);
+    const div = document.getElementById('pagination');
+    if (pages <= 1) { div.innerHTML = ''; return; }
+    div.innerHTML = '';
+    for (let i = 1; i <= pages; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'btn-sm' + (i === page ? ' btn-primary' : '');
+      btn.textContent = i;
+      btn.addEventListener('click', (function (pageNum) {
+        return function () { doSearch(pageNum); };
+      }(i)));
+      div.appendChild(btn);
+    }
+  }
+
+  // ── Edit profile ───────────────────────────────────────────────────────────
+  document.getElementById('btn-save-profile').addEventListener('click', async () => {
+    const body = {};
+    const username = document.getElementById('edit-username').value.trim();
+    const age = document.getElementById('edit-age').value;
+    const gender = document.getElementById('edit-gender').value;
+    const location = document.getElementById('edit-location').value.trim();
+    const bio = document.getElementById('edit-bio').value.trim();
+    const photo_url = document.getElementById('edit-photo').value.trim();
+
+    if (username) body.username = username;
+    if (age) body.age = parseInt(age, 10);
+    if (gender) body.gender = gender;
+    if (location) body.location = location;
+    if (bio) body.bio = bio;
+    if (photo_url) body.photo_url = photo_url;
+
+    document.getElementById('edit-error').textContent = '';
+    try {
+      const data = await api('PUT', '/profiles/me', body);
+      if (data.profile && data.profile.username) {
+        currentUser.username = data.profile.username;
+        localStorage.setItem('iborg_user', JSON.stringify(currentUser));
+        navUsername.textContent = currentUser.username;
+      }
+      document.getElementById('edit-error').style.color = '#27ae60';
+      document.getElementById('edit-error').textContent = 'Profile saved!';
+    } catch (e) {
+      document.getElementById('edit-error').style.color = '#c0392b';
+      document.getElementById('edit-error').textContent = e.message;
+    }
+  });
+
+  // ── Chat ───────────────────────────────────────────────────────────────────
+  function openChat(userId, username) {
+    chatPartnerId = userId;
+    chatPartnerName = username;
+    document.getElementById('chat-partner-name').textContent = username;
+    document.getElementById('chat-messages').innerHTML = '';
+    document.getElementById('chat-panel').classList.remove('hidden');
+    loadMessages();
+    stopChatPoll();
+    chatPollInterval = setInterval(loadMessages, 3000);
+  }
+
+  document.getElementById('btn-close-chat').addEventListener('click', () => {
+    document.getElementById('chat-panel').classList.add('hidden');
+    stopChatPoll();
+  });
+
+  function stopChatPoll() {
+    if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+  }
+
+  async function loadMessages() {
+    if (!chatPartnerId || !token) return;
+    try {
+      const data = await api('GET', '/chat/messages/' + chatPartnerId);
+      renderMessages(data.messages);
+    } catch (_) {}
+  }
+
+  function renderMessages(msgs) {
+    const box = document.getElementById('chat-messages');
+    const wasAtBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 40;
+    box.innerHTML = msgs.map(m => {
+      const isOut = m.sender_id === currentUser.id;
+      return `<div class="msg ${isOut ? 'msg-out' : 'msg-in'}">${escHtml(m.content)}</div>`;
+    }).join('');
+    if (wasAtBottom) box.scrollTop = box.scrollHeight;
+  }
+
+  document.getElementById('chat-send').addEventListener('click', sendMessage);
+  document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const content = input.value.trim();
+    if (!content || !chatPartnerId) return;
+    input.value = '';
+    try {
+      await api('POST', '/chat/messages/' + chatPartnerId, { content });
+      await loadMessages();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+})();
+</script>
+</body>
+</html>
