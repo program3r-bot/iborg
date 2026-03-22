@@ -1,13 +1,16 @@
 'use strict';
 
 const express = require('express');
-const { body, param, query } = require('express-validator');
+const { body, query } = require('express-validator');
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
 const { searchLimiter, apiLimiter } = require('../middleware/rateLimit');
 const { handleValidationErrors } = require('../middleware/validate');
 
 const router = express.Router();
+
+// Apply general rate limiter to all profile routes
+router.use(apiLimiter);
 
 const MIN_AGE = 18;
 
@@ -17,15 +20,8 @@ function calculateAge(dob) {
   return Math.floor((now - dobMs) / (365.25 * 24 * 60 * 60 * 1000));
 }
 
-// Max DOB for 18+ (date_of_birth must be at least 18 years before today)
-function maxDobFor18Plus() {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - MIN_AGE);
-  return d.toISOString().slice(0, 10);
-}
-
 // GET /api/profiles/me
-router.get('/me', authenticate, apiLimiter, async (req, res) => {
+router.get('/me', authenticate, async (req, res) => {
   try {
     const rows = await db.query(
       `SELECT p.id, p.display_name, p.date_of_birth, p.bio, p.location, p.is_active, p.created_at
@@ -51,7 +47,6 @@ router.get('/me', authenticate, apiLimiter, async (req, res) => {
 router.put(
   '/me',
   authenticate,
-  apiLimiter,
   [
     body('display_name')
       .optional()
@@ -195,7 +190,7 @@ router.get(
 );
 
 // GET /api/profiles/:userId  - public profile view
-router.get('/:userId', authenticate, apiLimiter, async (req, res) => {
+router.get('/:userId', authenticate, async (req, res) => {
   const { userId } = req.params;
 
   try {

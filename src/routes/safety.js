@@ -10,11 +10,13 @@ const { handleValidationErrors } = require('../middleware/validate');
 
 const router = express.Router();
 
+// Apply rate limiter to all routes in this router
+router.use(apiLimiter);
+
 // POST /api/safety/blocks
 router.post(
   '/blocks',
   authenticate,
-  apiLimiter,
   [
     body('targetId').isUUID().withMessage('targetId must be a valid UUID.'),
   ],
@@ -57,7 +59,7 @@ router.post(
 );
 
 // DELETE /api/safety/blocks/:targetId
-router.delete('/blocks/:targetId', authenticate, apiLimiter, async (req, res) => {
+router.delete('/blocks/:targetId', authenticate, async (req, res) => {
   const blockerId = req.user.id;
   const { targetId } = req.params;
 
@@ -82,7 +84,6 @@ router.delete('/blocks/:targetId', authenticate, apiLimiter, async (req, res) =>
 router.post(
   '/reports',
   authenticate,
-  apiLimiter,
   [
     body('targetId').isUUID().withMessage('targetId must be a valid UUID.'),
     body('reason')

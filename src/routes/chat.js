@@ -10,6 +10,9 @@ const { handleValidationErrors } = require('../middleware/validate');
 
 const router = express.Router();
 
+// Apply rate limiter to all routes in this router
+router.use(apiLimiter);
+
 const MIN_AGE = 18;
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_URLS_PER_MESSAGE = 3;
@@ -70,7 +73,6 @@ async function assertConversationParticipant(conversationId, userId) {
 router.post(
   '/conversations',
   authenticate,
-  apiLimiter,
   [
     body('recipientId')
       .isUUID()
@@ -118,7 +120,7 @@ router.post(
 );
 
 // GET /api/chat/conversations
-router.get('/conversations', authenticate, apiLimiter, async (req, res) => {
+router.get('/conversations', authenticate, async (req, res) => {
   try {
     const rows = await db.query(
       `SELECT c.id, c.participant_a, c.participant_b, c.created_at
@@ -215,7 +217,6 @@ router.post(
 router.get(
   '/conversations/:conversationId/messages',
   authenticate,
-  apiLimiter,
   [
     query('limit').optional().isInt({ min: 1, max: 100 }),
     query('before').optional().isUUID().withMessage('before must be a valid message UUID.'),
