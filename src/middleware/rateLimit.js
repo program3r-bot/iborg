@@ -26,4 +26,13 @@ const messageLimiter = rateLimit({
   message: { error: 'Too many messages sent. Please slow down.' },
 });
 
-module.exports = { authLimiter, searchLimiter, messageLimiter };
+// General limiter for authenticated API routes (profile, chat, safety)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please slow down.' },
+});
+
+module.exports = { authLimiter, searchLimiter, messageLimiter, apiLimiter };

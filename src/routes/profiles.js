@@ -4,7 +4,7 @@ const express = require('express');
 const { body, param, query } = require('express-validator');
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
-const { searchLimiter } = require('../middleware/rateLimit');
+const { searchLimiter, apiLimiter } = require('../middleware/rateLimit');
 const { handleValidationErrors } = require('../middleware/validate');
 
 const router = express.Router();
@@ -25,7 +25,7 @@ function maxDobFor18Plus() {
 }
 
 // GET /api/profiles/me
-router.get('/me', authenticate, async (req, res) => {
+router.get('/me', authenticate, apiLimiter, async (req, res) => {
   try {
     const rows = await db.query(
       `SELECT p.id, p.display_name, p.date_of_birth, p.bio, p.location, p.is_active, p.created_at
@@ -51,6 +51,7 @@ router.get('/me', authenticate, async (req, res) => {
 router.put(
   '/me',
   authenticate,
+  apiLimiter,
   [
     body('display_name')
       .optional()
@@ -194,7 +195,7 @@ router.get(
 );
 
 // GET /api/profiles/:userId  - public profile view
-router.get('/:userId', authenticate, async (req, res) => {
+router.get('/:userId', authenticate, apiLimiter, async (req, res) => {
   const { userId } = req.params;
 
   try {

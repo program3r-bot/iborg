@@ -5,6 +5,7 @@ const { body, param } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
+const { apiLimiter } = require('../middleware/rateLimit');
 const { handleValidationErrors } = require('../middleware/validate');
 
 const router = express.Router();
@@ -13,6 +14,7 @@ const router = express.Router();
 router.post(
   '/blocks',
   authenticate,
+  apiLimiter,
   [
     body('targetId').isUUID().withMessage('targetId must be a valid UUID.'),
   ],
@@ -55,7 +57,7 @@ router.post(
 );
 
 // DELETE /api/safety/blocks/:targetId
-router.delete('/blocks/:targetId', authenticate, async (req, res) => {
+router.delete('/blocks/:targetId', authenticate, apiLimiter, async (req, res) => {
   const blockerId = req.user.id;
   const { targetId } = req.params;
 
@@ -80,6 +82,7 @@ router.delete('/blocks/:targetId', authenticate, async (req, res) => {
 router.post(
   '/reports',
   authenticate,
+  apiLimiter,
   [
     body('targetId').isUUID().withMessage('targetId must be a valid UUID.'),
     body('reason')
