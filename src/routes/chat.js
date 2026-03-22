@@ -17,6 +17,12 @@ const SPAM_IDENTICAL_THRESHOLD = 5;
 const SPAM_BURST_THRESHOLD = 20;
 const URL_PATTERN = /https?:\/\/\S+/gi;
 
+function toMySQLTimestamp(date) {
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+
+
 function calculateAge(dob) {
   const now = Date.now();
   const dobMs = new Date(dob).getTime();
@@ -168,7 +174,7 @@ router.post(
       }
 
       // Anti-spam: identical message flood (>5 identical in last hour)
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+      const oneHourAgo = toMySQLTimestamp(new Date(Date.now() - 60 * 60 * 1000));
       const identicalRows = await db.query(
         `SELECT COUNT(*) AS cnt FROM messages
          WHERE conversation_id = ? AND sender_id = ? AND body = ? AND created_at >= ?`,
@@ -179,7 +185,7 @@ router.post(
       }
 
       // Anti-spam: burst check (>20 messages in last minute)
-      const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+      const oneMinuteAgo = toMySQLTimestamp(new Date(Date.now() - 60 * 1000));
       const burstRows = await db.query(
         `SELECT COUNT(*) AS cnt FROM messages
          WHERE conversation_id = ? AND sender_id = ? AND created_at >= ?`,

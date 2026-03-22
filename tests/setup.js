@@ -173,8 +173,13 @@ function buildMockQuery(store) {
     // --- messages ---
     if (/^SELECT COUNT\(\*\) AS cnt FROM messages WHERE conversation_id = \? AND sender_id = \? AND body/i.test(s)) {
       const [convId, senderId, body, since] = params;
+      const sinceTime = since ? new Date(since).getTime() : 0;
       const cnt = store.messages.filter(
-        (m) => m.conversation_id === convId && m.sender_id === senderId && m.body === body
+        (m) =>
+          m.conversation_id === convId &&
+          m.sender_id === senderId &&
+          m.body === body &&
+          new Date(m.created_at).getTime() >= sinceTime
       ).length;
       return [{ cnt }];
     }

@@ -144,7 +144,7 @@ router.get(
     const maxDob = new Date(now);
     maxDob.setFullYear(now.getFullYear() - safeMinAge);
     const minDob = new Date(now);
-    minDob.setFullYear(now.getFullYear() - safeMaxAge - 1);
+    minDob.setFullYear(now.getFullYear() - safeMaxAge);
 
     try {
       const conditions = [
