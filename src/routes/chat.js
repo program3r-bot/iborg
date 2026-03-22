@@ -24,8 +24,6 @@ function toMySQLTimestamp(date) {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
-
-
 function calculateAge(dob) {
   const now = Date.now();
   const dobMs = new Date(dob).getTime();
